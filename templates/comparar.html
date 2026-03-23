@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparar cursos · UFPB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="page-bg" aria-hidden="true">
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+</div>
+
+<div class="layout layout--comparar">
+
+    <header class="site-header site-header--sub">
+        <a href="{{ url_for('index') }}" class="back-link">← Voltar à busca</a>
+        <h1 class="comparar-title">Comparar dois cursos</h1>
+        <p class="comparar-lead">Relações calculadas com os predicados Prolog <code>mesmo_campus/2</code>, <code>mesmo_centro/2</code> e fatos <code>indicado_para/2</code>.</p>
+    </header>
+
+    <section class="comparar-form-section">
+        <form method="get" action="{{ url_for('comparar') }}" class="comparar-form">
+            <div class="comparar-selects">
+                <div class="filter-item">
+                    <label for="c1">Primeiro curso</label>
+                    <div class="select-wrap">
+                        <select name="c1" id="c1">
+                            <option value="">—</option>
+                            {% for cid, nome in cursos_opts %}
+                            <option value="{{ cid }}" {% if c1 == cid %}selected{% endif %}>{{ nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="comparar-vs" aria-hidden="true">e</div>
+                <div class="filter-item">
+                    <label for="c2">Segundo curso</label>
+                    <div class="select-wrap">
+                        <select name="c2" id="c2">
+                            <option value="">—</option>
+                            {% for cid, nome in cursos_opts %}
+                            <option value="{{ cid }}" {% if c2 == cid %}selected{% endif %}>{{ nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn-buscar">Comparar</button>
+        </form>
+
+        {% if erro %}
+        <p class="comparar-erro" role="alert">{{ erro }}</p>
+        {% endif %}
+    </section>
+
+    {% if resultado %}
+    <section class="comparar-result" aria-live="polite">
+        <div class="comparar-grid">
+            <article class="comparar-card">
+                <h2 class="comparar-card-name">{{ resultado.nome1 }}</h2>
+                <ul class="comparar-facts">
+                    <li><span>Área</span> {{ resultado.area1 }}</li>
+                    <li><span>Campus</span> {{ resultado.campus1 }}</li>
+                    <li><span>Centro</span> {{ resultado.centro1 }}</li>
+                    <li><span>Turno</span> {{ resultado.turno1 }}</li>
+                    <li><span>Duração</span> {{ resultado.duracao1 }} anos</li>
+                    <li><span>Nota corte (ref.)</span> {{ resultado.nota1 }}</li>
+                </ul>
+            </article>
+            <article class="comparar-card">
+                <h2 class="comparar-card-name">{{ resultado.nome2 }}</h2>
+                <ul class="comparar-facts">
+                    <li><span>Área</span> {{ resultado.area2 }}</li>
+                    <li><span>Campus</span> {{ resultado.campus2 }}</li>
+                    <li><span>Centro</span> {{ resultado.centro2 }}</li>
+                    <li><span>Turno</span> {{ resultado.turno2 }}</li>
+                    <li><span>Duração</span> {{ resultado.duracao2 }} anos</li>
+                    <li><span>Nota corte (ref.)</span> {{ resultado.nota2 }}</li>
+                </ul>
+            </article>
+        </div>
+
+        <div class="comparar-inferencia">
+            <h3 class="comparar-inferencia-title">Inferência (motor lógico)</h3>
+            <ul class="comparar-flag-list">
+                <li class="{% if resultado.mesma_area %}flag-sim{% else %}flag-nao{% endif %}">Mesma área: {% if resultado.mesma_area %}sim{% else %}não{% endif %}</li>
+                <li class="{% if resultado.mesmo_campus %}flag-sim{% else %}flag-nao{% endif %}">Mesmo campus (<code>mesmo_campus/2</code>): {% if resultado.mesmo_campus %}sim{% else %}não{% endif %}</li>
+                <li class="{% if resultado.mesmo_centro %}flag-sim{% else %}flag-nao{% endif %}">Mesmo centro (<code>mesmo_centro/2</code>): {% if resultado.mesmo_centro %}sim{% else %}não{% endif %}</li>
+            </ul>
+            {% if resultado.interesses_comuns %}
+            <p class="comparar-interesses">Interesses em comum (<code>indicado_para/2</code>): <strong>{{ resultado.interesses_comuns | join(', ') }}</strong></p>
+            {% else %}
+            <p class="comparar-interesses comparar-interesses--empty">Nenhum interesse em comum na base <code>indicado_para/2</code>.</p>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <footer class="site-footer">
+        <p>Sistema de Busca e Recomendação de Cursos · UFPB ·
+            <span class="footer-stack">Python + Flask + Prolog</span>
+        </p>
+    </footer>
+</div>
+
+</body>
+</html>

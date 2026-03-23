@@ -1,0 +1,2 @@
+:- ['cursos.pl'].
+:- ['regras.pl'].

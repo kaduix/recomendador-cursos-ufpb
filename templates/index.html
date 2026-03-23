@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca e Recomendação de Cursos da UFPB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% macro bloco_parecidos(curso, ids_na_pagina) %}
+{% if curso.parecidos %}
+<div class="parecidos-block parecidos--{{ curso.cor_area }}">
+    <p class="parecidos-title">Cursos parecidos</p>
+    <p class="parecidos-hint">{% if interesses %}Só entram sugestões que também coincidem com os interesses que você marcou. {% endif %}Ordem na base: mesma área + interesse → mesmo centro + mesma área.</p>
+    <ul class="parecidos-list">
+        {% for p in curso.parecidos %}
+        <li>
+            {% if p.id in ids_na_pagina %}
+            <a class="parecido-link" href="#curso-{{ p.id }}">{{ p.nome }}</a>
+            {% else %}
+            <span class="parecido-nome">{{ p.nome }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro cartao_curso_compat(curso, ids_na_pagina, interesses, anim_idx) %}
+<article data-curso="{{ curso.id }}" {% if curso.anchor_aqui|default(true) %}id="curso-{{ curso.id }}"{% endif %} class="course-card area-{{ curso.cor_area }}" style="--delay: {{ anim_idx }}ms">
+    <div class="card-stripe"></div>
+    <div class="card-body">
+        <div class="card-badges">
+            <span class="area-badge area-badge--{{ curso.cor_area }}">{{ curso.area }}</span>
+            <span class="grau-badge">{{ curso.grau }}</span>
+            {% for b in curso.badges_prolog %}
+            <span class="prolog-badge" title="Classificação derivada de predicados em regras.pl">{{ b }}</span>
+            {% endfor %}
+            {% if interesses %}
+            <span class="afinidade-badge afinidade--{{ curso.afinidade }}">
+                {% if curso.afinidade == 'alta' %}◆ Alta afinidade
+                {% elif curso.afinidade == 'media' %}◈ Média afinidade
+                {% else %}◇ Baixa aderência ao perfil{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        <h2 class="course-name">{{ curso.nome }}</h2>
+        {% if curso.centro %}<div class="centro-row"><span>🏛</span><span class="centro-label">{{ curso.centro }}</span></div>{% endif %}
+        {% if curso.introducao %}<p class="course-intro">{{ curso.introducao }}</p>{% endif %}
+        <div class="course-details">
+            <div class="detail-item"><span class="detail-key">Turno</span><span class="detail-val">{{ curso.turno }}</span></div>
+            <div class="detail-item"><span class="detail-key">Duração</span><span class="detail-val">{{ curso.duracao }}</span></div>
+            <div class="detail-item"><span class="detail-key">Campus</span><span class="detail-val">{{ curso.campus }}</span></div>
+            {% if curso.nota_corte %}<div class="detail-item"><span class="detail-key">Nota de corte (ref.)</span><span class="detail-val nota-val">{{ curso.nota_corte }}</span></div>{% endif %}
+            {% if curso.carga %}<div class="detail-item"><span class="detail-key">Carga horária</span><span class="detail-val">{{ curso.carga }}</span></div>{% endif %}
+        </div>
+        {% if curso.interesses %}<div class="course-tags">{% for tag in curso.interesses %}<span class="tag tag--{{ curso.cor_area }}">{{ tag }}</span>{% endfor %}</div>{% endif %}
+        {% if curso.motivos %}
+        <div class="course-motivos motivos--{{ curso.cor_area }}">
+            <p class="motivos-title">Por que este curso?</p>
+            <ul class="motivos-list">{% for m in curso.motivos %}<li>{{ m }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        {% if interesses and curso.interesses_alinhados %}
+        <div class="inferencia-prolog inferencia--{{ curso.cor_area }}">
+            <p class="inferencia-title">Explicabilidade · Prolog</p>
+            <p class="inferencia-body">Os interesses do seu perfil
+                <strong>{{ curso.interesses_alinhados | join(', ') }}</strong>
+                aparecem como fatos <code>indicado_para/2</code> para este curso (pontuação +2 por eixo alinhado).</p>
+        </div>
+        {% endif %}
+        {{ bloco_parecidos(curso, ids_na_pagina) }}
+        {% if interesses and curso.max_score %}
+        <div class="afinidade-bar-wrap">
+            <span class="afinidade-bar-label">Afinidade</span>
+            <div class="afinidade-bar">
+                <div class="afinidade-fill fill--{{ curso.cor_area }}" style="width: {{ ([100.0 * curso.score / curso.max_score, 100.0] | min) | round(1) }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</article>
+{% endmacro %}
+
+<div class="page-bg" aria-hidden="true">
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-blob blob1"></div>
+    <div class="bg-blob blob2"></div>
+    <div class="bg-blob blob3"></div>
+    <svg class="bg-graph" viewBox="0 0 400 280" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+        <path class="graph-edge" d="M48 200 Q120 120 200 88 T352 48" stroke="currentColor" stroke-width="1" stroke-dasharray="4 6" opacity="0.35"/>
+        <path class="graph-edge" d="M32 96 L168 168 L320 112" stroke="currentColor" stroke-width="1" opacity="0.2"/>
+        <circle class="graph-node" cx="48" cy="200" r="4" fill="currentColor" opacity="0.4"/>
+        <circle class="graph-node" cx="200" cy="88" r="5" fill="currentColor" opacity="0.35"/>
+        <circle class="graph-node" cx="352" cy="48" r="3" fill="currentColor" opacity="0.3"/>
+        <circle class="graph-node" cx="168" cy="168" r="3.5" fill="currentColor" opacity="0.25"/>
+        <circle class="graph-node" cx="320" cy="112" r="3" fill="currentColor" opacity="0.25"/>
+    </svg>
+</div>
+
+<div class="layout">
+
+    <!-- HEADER -->
+    <header class="site-header">
+        <div class="hero-shell">
+            <div class="hero-kicker">
+                <span class="kicker-line"></span>
+                <span class="kicker-text">Descoberta guiada por regras e preferências</span>
+            </div>
+            <div class="header-inner">
+                <div class="header-left">
+                    <div class="ufpb-mark" title="Universidade Federal da Paraíba">
+                        <span class="ufpb-sigla">UFPB</span>
+                        <span class="ufpb-linha"></span>
+                        <span class="ufpb-sub">Graduação</span>
+                    </div>
+                    <div class="header-titles">
+                        <p class="site-eyebrow">Sistema inteligente de orientação</p>
+                        <h1 class="site-title">Busca e recomendação<br><em>de cursos na UFPB</em></h1>
+                        <p class="site-sub">Restrições definem o universo; seus interesses reorganizam o que vem primeiro.</p>
+                    </div>
+                </div>
+                <aside class="tech-stack" aria-label="Tecnologias do motor de inferência">
+                    <span class="tech-label">Motor lógico</span>
+                    <p class="tech-caption">Consulta declarativa + ranking por afinidade</p>
+                    <div class="tech-pills">
+                        <span class="tech-pill">Python</span>
+                        <span class="tech-sep">·</span>
+                        <span class="tech-pill">Flask</span>
+                        <span class="tech-sep">·</span>
+                        <span class="tech-pill pill-prolog">Prolog</span>
+                    </div>
+                    <a class="header-compare-link" href="{{ url_for('comparar') }}">Comparar dois cursos →</a>
+                </aside>
+            </div>
+            <div class="hero-flow" aria-hidden="true">
+                <div class="flow-step flow-step--hard">
+                    <span class="flow-dot"></span>
+                    <span class="flow-label">Filtros</span>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step flow-step--logic">
+                    <span class="flow-dot"></span>
+                    <span class="flow-label">Inferência</span>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step flow-step--soft">
+                    <span class="flow-dot"></span>
+                    <span class="flow-label">Ranking</span>
+                </div>
+            </div>
+            <p class="hero-text">
+                Indique o que você precisa (área, turno, campus…) e o que desperta seu interesse.
+                O sistema cruza critérios e ordena os cursos mais alinhados ao seu perfil.
+            </p>
+        </div>
+    </header>
+
+    <!-- FORMULÁRIO -->
+    <section class="filters-section">
+        <form method="POST" id="filterForm">
+
+            <!-- BLOCO 1: O QUE VOCÊ PRECISA -->
+            <div class="filter-block">
+                <div class="filter-block-header">
+                    <span class="step-pill" aria-hidden="true">01</span>
+                    <span class="filter-block-icon filter-block-icon--hard" aria-hidden="true"></span>
+                    <div>
+                        <span class="filter-block-title">Critérios objetivos</span>
+                        <span class="filter-block-desc">Limite o espaço de busca ao que você realmente pode cursar</span>
+                    </div>
+                </div>
+                <div class="filters-grid">
+
+                    <div class="filter-item">
+                        <label for="area">Área do conhecimento</label>
+                        <div class="select-wrap">
+                            <select name="area" id="area">
+                                <option value="">Qualquer área</option>
+                                {% for k, v in areas.items() %}
+                                <option value="{{ k }}" {% if restricoes.get('area') == k %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="turno">Turno</label>
+                        <div class="select-wrap">
+                            <select name="turno" id="turno">
+                                <option value="">Qualquer turno</option>
+                                {% for k, v in turnos.items() %}
+                                <option value="{{ k }}" {% if restricoes.get('turno') == k %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="campus">Campus</label>
+                        <div class="select-wrap">
+                            <select name="campus" id="campus">
+                                <option value="">Qualquer campus</option>
+                                {% for k, v in campus_opts.items() %}
+                                <option value="{{ k }}" {% if restricoes.get('campus') == k %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="grau">Tipo de curso</label>
+                        <div class="select-wrap">
+                            <select name="grau" id="grau">
+                                <option value="">Qualquer tipo</option>
+                                {% for k, v in graus.items() %}
+                                <option value="{{ k }}" {% if restricoes.get('grau') == k %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="duracao_max">Duração máxima</label>
+                        <div class="select-wrap">
+                            <select name="duracao_max" id="duracao_max">
+                                <option value="">Sem limite</option>
+                                <option value="4" {% if restricoes.get('duracao_max') == 4 %}selected{% endif %}>Até 4 anos</option>
+                                <option value="5" {% if restricoes.get('duracao_max') == 5 %}selected{% endif %}>Até 5 anos</option>
+                                <option value="6" {% if restricoes.get('duracao_max') == 6 %}selected{% endif %}>Até 6 anos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="nota_enem">Sua nota ENEM (referência)</label>
+                        <div class="select-wrap">
+                            <select name="nota_enem" id="nota_enem">
+                                <option value="">Sem filtro</option>
+                                {% for n in [580, 600, 620, 640, 660, 680, 700, 730, 760, 800] %}
+                                <option value="{{ n }}" {% if restricoes.get('nota_enem') == n %}selected{% endif %}>Até {{ n }} — cursos com nota de corte ≤ {{ n }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p class="filter-hint">Valores simulados em <code class="filter-code">nota_corte/2</code></p>
+                    </div>
+
+                    <div class="filter-item">
+                        <label for="carga_max">Carga horária máxima</label>
+                        <div class="select-wrap">
+                            <select name="carga_max" id="carga_max">
+                                <option value="">Sem limite</option>
+                                {% for h in [2800, 3000, 3200, 3600, 4000, 5000, 7200] %}
+                                <option value="{{ h }}" {% if restricoes.get('carga_max') == h %}selected{% endif %}>Até {{ h }}h</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p class="filter-hint">Predicado <code class="filter-code">carga_horaria/2</code></p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- BLOCO 2: O QUE VOCÊ GOSTA -->
+            <div class="filter-block filter-block--pref">
+                <div class="filter-block-header">
+                    <span class="step-pill step-pill--gold" aria-hidden="true">02</span>
+                    <span class="filter-block-icon filter-block-icon--soft" aria-hidden="true"></span>
+                    <div>
+                        <span class="filter-block-title">Perfil de interesses</span>
+                        <span class="filter-block-desc">Quanto mais eixos combinem com um curso, mais ele sobe na lista de recomendação.</span>
+                    </div>
+                </div>
+                <div class="interesses-grid">
+                    {% for k, v in interesses_opts.items() %}
+                    <label class="interesse-chip {% if k in interesses %}interesse-chip--ativo{% endif %}">
+                        <input type="checkbox" name="interesses" value="{{ k }}"
+                            {% if k in interesses %}checked{% endif %}>
+                        {{ v }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- AÇÕES -->
+            <div class="filter-actions">
+                <button type="submit" class="btn-buscar">
+                    <span class="btn-buscar-icon" aria-hidden="true"></span> Buscar cursos
+                </button>
+                <a href="{{ url_for('index') }}" class="btn-limpar">Limpar tudo</a>
+            </div>
+
+        </form>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section class="results-section">
+
+        {% set buscou = restricoes or interesses %}
+        {% set compativeis = resultado.compativeis %}
+
+        {% if buscou %}
+
+            {% if total > 0 %}
+
+            <div class="results-header">
+                <p class="results-count">
+                    <strong>{{ total }}</strong> curso{{ 's' if total != 1 }} encontrado{{ 's' if total != 1 }}
+                </p>
+                <p class="results-hint">
+                    {% if interesses %}
+                        {% if resultado.compativeis_grupos %}
+                        Vários interesses ativos: cada bloco abaixo lista só cursos ligados àquele eixo em <code>indicado_para/2</code> (um curso pode repetir em mais de um bloco).
+                        {% else %}
+                        Compatíveis com seu perfil de interesse
+                        {% endif %}
+                    {% else %}
+                        Encontrados com base nos filtros selecionados
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Chips dos filtros ativos -->
+            {% if restricoes or interesses %}
+            <div class="filtros-ativos">
+                {% for k, v in restricoes.items() %}
+                <span class="filtro-chip filtro-chip--hard">
+                    {% if k == 'area' %}{{ areas.get(v, v) }}
+                    {% elif k == 'turno' %}{{ turnos.get(v, v) }}
+                    {% elif k == 'campus' %}{{ campus_opts.get(v, v) }}
+                    {% elif k == 'grau' %}{{ graus.get(v, v) }}
+                    {% elif k == 'duracao_max' %}Até {{ v }} anos
+                    {% elif k == 'nota_enem' %}Sua nota {{ v }}+ — só cursos com corte ≤ {{ v }}
+                    {% elif k == 'carga_max' %}Carga ≤ {{ v }}h
+                    {% else %}{{ v }}{% endif %}
+                </span>
+                {% endfor %}
+                {% for i in interesses %}
+                <span class="filtro-chip filtro-chip--pref">✨ {{ interesses_opts.get(i, i) }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- SEÇÃO PRINCIPAL: compatíveis com os interesses (ou todos, se sem interesses) -->
+            {% if compativeis %}
+            {% if resultado.compativeis_grupos %}
+            <div class="secao-header">
+                <span class="secao-marker secao-marker--match"></span>
+                <span class="secao-titulo">Combinam com seu perfil</span>
+                <span class="secao-count">{{ compativeis | length }} curso{{ 's' if compativeis | length != 1 }} no total</span>
+            </div>
+            {% for g in resultado.compativeis_grupos %}
+            <div class="secao-header secao-header--grupo-interesse">
+                <span class="secao-marker secao-marker--match"></span>
+                <span class="secao-titulo">Por interesse em {{ g.interesse_label }}</span>
+                <span class="secao-count">{{ g.cursos | length }} curso{{ 's' if g.cursos | length != 1 }}</span>
+            </div>
+            <div class="courses-grid">
+                {% for curso in g.cursos %}
+                {{ cartao_curso_compat(curso, ids_na_pagina, interesses, loop.index0 * 60) }}
+                {% endfor %}
+            </div>
+            {% endfor %}
+            {% else %}
+            {% if interesses %}
+            <div class="secao-header">
+                <span class="secao-marker secao-marker--match"></span>
+                <span class="secao-titulo">Combinam com seu perfil</span>
+                <span class="secao-count">{{ compativeis | length }} curso{{ 's' if compativeis | length != 1 }}</span>
+            </div>
+            {% endif %}
+            <div class="courses-grid">
+                {% for curso in compativeis %}
+                {{ cartao_curso_compat(curso, ids_na_pagina, interesses, loop.index0 * 60) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+
+
+            {% else %}
+
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>Nenhum curso encontrado</h3>
+                {% if interesses %}
+                <p>Nenhum curso compatível com os interesses selecionados
+                    {%- if restricoes %} e os filtros aplicados{% endif %}.</p>
+                <p class="empty-hint">Tente selecionar outros interesses ou remover algum filtro.</p>
+                {% else %}
+                <p>Nenhum curso combina com os filtros selecionados.</p>
+                <p class="empty-hint">Tente remover ou alterar algum critério.</p>
+                {% endif %}
+                <a href="{{ url_for('index') }}" class="btn-limpar">Limpar filtros</a>
+            </div>
+
+            {% endif %}
+
+        {% else %}
+
+        <div class="hint-state">
+            <p class="hint-text">Use os filtros acima para encontrar cursos compatíveis com seu perfil.</p>
+        </div>
+
+        {% endif %}
+
+    </section>
+
+    <section class="compare-cta" aria-label="Ferramenta de comparação">
+        <p class="compare-cta-text">Quer cruzar turno, campus, centro e interesses entre duas opções?</p>
+        <a href="{{ url_for('comparar') }}" class="btn-comparar">Abrir comparador de cursos</a>
+    </section>
+
+    <footer class="site-footer">
+        <p>Sistema de Busca e Recomendação de Cursos · UFPB ·
+            <span class="footer-stack">Python + Flask + Prolog</span>
+        </p>
+    </footer>
+
+</div>
+
+<script>
+document.querySelectorAll('.interesse-chip input').forEach(cb => {
+    cb.addEventListener('change', () => {
+        cb.closest('.interesse-chip').classList.toggle('interesse-chip--ativo', cb.checked);
+    });
+});
+</script>
+
+</body>
+</html>
