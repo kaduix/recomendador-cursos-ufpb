@@ -13,7 +13,7 @@
 {% if curso.parecidos %}
 <div class="parecidos-block parecidos--{{ curso.cor_area }}">
     <p class="parecidos-title">Cursos parecidos</p>
-    <p class="parecidos-hint">{% if interesses %}Só entram sugestões que também coincidem com os interesses que você marcou. {% endif %}Ordem na base: mesma área + interesse → mesmo centro + mesma área.</p>
+    <p class="parecidos-hint">{% if interesses %}Só entram sugestões que também coincidem com os interesses que você marcou.{% endif %}</p>
     <ul class="parecidos-list">
         {% for p in curso.parecidos %}
         <li>

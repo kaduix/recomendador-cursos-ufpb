@@ -316,11 +316,11 @@ def _gerar_motivos(curso_id: str, restricoes: dict, interesses: list[str],
 
     if restricoes.get("nota_enem") is not None:
         motivos.append(
-            f"Nota de corte de referência até {restricoes['nota_enem']} (ENEM — seu valor informado; predicado nota_corte/2)"
+            f"Nota de corte de referência até {restricoes['nota_enem']} (ENEM — valor informado por você)"
         )
 
     if restricoes.get("carga_max") is not None:
-        motivos.append(f"Carga horária até {restricoes['carga_max']}h (predicado carga_horaria/2)")
+        motivos.append(f"Carga horária até {restricoes['carga_max']}h")
 
     for i in interesses:
         if i in interesses_curso:
